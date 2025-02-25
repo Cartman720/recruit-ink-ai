@@ -1,49 +1,38 @@
-FROM python:3.13-bullseye AS python-base
+FROM python:3.13-bullseye AS base
 
-# Set environment variables for Python, Pip, Poetry and project directories
+# Set environment variables for Python and Poetry
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PIP_NO_CACHE_DIR=off \
-    PIP_DISABLE_PIP_VERSION_CHECK=on \
-    PIP_DEFAULT_TIMEOUT=100 \
     POETRY_HOME="/opt/poetry" \
     POETRY_VIRTUALENVS_IN_PROJECT=true \
     POETRY_NO_INTERACTION=1 \
-    PROJECT_DIR="/code"
+    PROJECT_DIR="/app"
 
-# Add Poetry to the PATH
+# Add Poetry and project virtual environment to PATH
 ENV PATH="$POETRY_HOME/bin:$PROJECT_DIR/.venv/bin:$PATH"
 
-FROM python-base AS production
-
 # Install system dependencies
-RUN buildDeps="build-essential" \
-    && apt-get update \
-    && apt-get install --no-install-recommends -y \
+RUN apt-get update && apt-get install --no-install-recommends -y \
+    build-essential \
     curl \
-    vim \
-    netcat \
-    && apt-get install -y --no-install-recommends $buildDeps \
     && rm -rf /var/lib/apt/lists/*
 
-# Set Poetry and uv versions
+# Install Poetry (set version as needed)
 ENV POETRY_VERSION=2.1.1
-ENV UV_VERSION=0.2.17
-
-# Install Poetry - respects $POETRY_VERSION & $POETRY_HOME
 RUN curl -sSL https://install.python-poetry.org | python3 - && chmod a+x /opt/poetry/bin/poetry
-RUN poetry self add poetry-plugin-export
-RUN pip install uv==$UV_VERSION
 
-# Install package dependencies with uv
-COPY poetry.lock pyproject.toml ./
-RUN poetry export -f requirements.txt --output requirements.txt
-RUN poetry run uv pip install -r requirements.txt
-
-# Set working directory and copy package files
+# Set working directory
 WORKDIR $PROJECT_DIR
-COPY api ./api
 
+# Copy all files from the repository into /app
+# (Make sure your .dockerignore doesn't exclude the "api" folder)
+COPY . .
+
+# Install only the main dependencies using Poetry
+RUN poetry install --only main
+
+# Expose the port used by FastAPI
 EXPOSE 8000
 
+# Run the FastAPI app using gunicorn with uvicorn workers
 CMD ["poetry", "run", "gunicorn", "api.main:app", "--workers", "4", "--worker-class", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000"]

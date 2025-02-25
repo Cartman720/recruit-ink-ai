@@ -7,6 +7,12 @@ app = FastAPI(title="Recruit-Ink API")
 # Register all routers automatically
 register_routers(app)
 
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+
 if __name__ == "__main__":
     import uvicorn
 
