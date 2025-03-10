@@ -21,6 +21,7 @@ pdfminer-six = "^20240706"
 pypdf2 = "^3.0.1"
 langchain-xai = "^0.2.1"
 gunicorn = "^23.0.0"
+langchain-anthropic = "^0.3.9"
 
 
 [build-system]

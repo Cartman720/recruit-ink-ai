@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field
-from typing import List
+from pydantic import BaseModel, Field, model_validator
+from typing import List, Optional, Union, Any
 
 
 class ScreeningEvaluationItem(BaseModel):
@@ -17,17 +17,16 @@ class ScreeningEvaluationItem(BaseModel):
     )
 
 
-
 class ScreeningEvaluation(BaseModel):
-    screening_evaluations: List[ScreeningEvaluationItem] = Field(
+    screening_evaluations: Union[List[ScreeningEvaluationItem], List[dict], str, Any] = Field(
         default_factory=list,
         description="List of evaluations for each screening question",
     )
     years_of_experience: int = Field(
-        ...,
+        default=0,
         description="Years of experience of the candidate",
     )
     summary: str = Field(
-        ...,
+        default="",
         description="Summary of the screening evaluation, mention why the candidate was rejected or accepted",
     )
