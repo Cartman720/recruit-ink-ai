@@ -50,3 +50,34 @@ async def screen_application(
     res = await applications_service.screen(description, resume, questions)
 
     return res
+
+
+@router.post("/screen/file")
+async def screen_application_file(
+    file: UploadFile,
+    description: Annotated[str, Body(embed=True)],
+    applications_service: ApplicationsService = Depends(get_applications_service),
+):
+    """Screen a CV file against a job description and return critical feedback"""
+
+    # Check if the uploaded file is a PDF
+    if file.content_type != "application/pdf":
+        raise HTTPException(
+            status_code=400, detail="Invalid file type. Please upload a PDF file."
+        )
+
+    # Read the uploaded PDF file into memory
+    try:
+        contents = await file.read()
+        pdf_stream = BytesIO(contents)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error reading PDF file: {e}")
+
+    # Extract text from PDF
+    resume_text = await applications_service.extract_pdf_text(pdf_stream)
+    
+    # Screen the extracted resume against the job description
+    # We're not passing any specific screening questions since this is a general roast
+    screening_result = await applications_service.screen(description, resume_text)
+
+    return screening_result

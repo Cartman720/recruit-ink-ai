@@ -2,14 +2,10 @@ from io import BytesIO
 from PyPDF2 import PdfReader
 from fastapi import HTTPException
 from fastapi.encoders import jsonable_encoder
-from langchain_xai import ChatXAI
 from pydantic import BaseModel
-import asyncio
 
 from api.models.screening_question import ScreeningEvaluation
 from api.services.base_service import BaseService
-from api.services.jobs_service import JobsService
-from api.services.resume_service import ResumeService
 
 
 class ScreeningQuestion(BaseModel):
@@ -32,36 +28,59 @@ class ApplicationsService(BaseService):
             raise HTTPException(status_code=500, detail=f"Error reading PDF file: {e}")
 
     async def screen(
-        self, description: str, resume: str, questions: list[ScreeningQuestion]
+        self,
+        description: str,
+        resume: str,
+        questions: list[ScreeningQuestion] = None,
     ):
         """Screen a resume against a job description and return the results"""
 
-        jobs_service = JobsService(self.model)
-        resume_service = ResumeService(self.model)
-
-        # Run both parsing operations concurrently
-        job_analysis, resume_analysis = await asyncio.gather(
-            jobs_service.parse_job_posting(description),
-            resume_service.parse_resume(resume),
-        )
-
         model_with_tools = self.model.with_structured_output(ScreeningEvaluation)
-
-        json_job_analysis = jsonable_encoder(job_analysis)
-        json_resume_analysis = jsonable_encoder(resume_analysis)
 
         answers = await model_with_tools.ainvoke(
             f"""
-                **Detailed Reasoning:**  
-                Provide a clear, concise explanation for your evaluation. 
-                Mention which expected skills were present, which were missing, and any additional context that supports your conclusion.  
+                You're tasked with evaluating a candidate's resume against the provided job description. Provide a clear and concise assessment, following these guidelines:
 
-                Job description: {json_job_analysis}
-                Resume: {json_resume_analysis}
-                Questions: {questions}
+                ### Evaluation Instructions:
+                1. **Relevance and Experience:**
+                - Analyze the resume carefully against the job description.
+                - Verify that experience aligns closely with required responsibilities and skills.
+                - Ensure the years of experience meet the job's stated criteria.
+
+                2. **Flag Analysis:**
+                - Pay special attention to yellow or red flags, such as gaps, inconsistencies, frequent job changes, or unclear descriptions.
+                - Highlight if the language or structure of the resume seems overly embellished, exaggerated, generic, or potentially AI-generated.
+
+                3. **Candidate Fit Assessment:**
+                - Clearly assess if the candidate's background matches the role based solely on provided information.
+
+                3. **Screen for Authenticity:**
+                - Be cautious of overly generic language or buzzwords that lack specificity.
+                - Highlight any sections that seem suspiciously inflated or vague, as these may indicate exaggerated experience.
+
+                ### Decision Guidelines:
+                - **Accept** if the candidate meets:
+                - Required years of relevant experience
+                - Possesses necessary skills clearly outlined in the job description.
+                
+                - **Reject** if:
+                - Skills explicitly required are missing.
+                - Insufficient years of relevant experience.
+                - Resume appears significantly exaggerated or suspiciously misaligned with typical industry standards.
+
+                ### Detailed Reasoning:
+                Provide a concise and specific rationale including:
+                - Exact skills and experiences that match the job.
+                - Clearly state missing or inadequate skills or experiences.
+                - Explicitly mention any concerning or misleading statements.
+                - Clearly conclude by recommending acceptance or rejection, explicitly explaining your reasoning.
+
+                This will ensure a thorough, precise, and authentic evaluation aligned with your hiring standards.
+                
+                Job description: {description}
+                Resume: {resume}
+                Questions: {questions if questions else "No questions provided"}
             """
         )
 
-        return {
-            "answers": jsonable_encoder(answers),
-        }
+        return jsonable_encoder(answers)
