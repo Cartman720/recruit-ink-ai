@@ -137,6 +137,8 @@ poetry run pytest
 ## Author
 
 - **Aren Hovsepyan** - *Project Creator and Maintainer*
+  - Email: [aren@aren.pro](mailto:aren@aren.pro)
+  - Website: [aren.pro](https://aren.pro)
 
 ## License
 
