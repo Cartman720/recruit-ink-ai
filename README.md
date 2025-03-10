@@ -134,6 +134,10 @@ Run tests with:
 poetry run pytest
 ```
 
+## Author
+
+- **Aren Hovsepyan** - *Project Creator and Maintainer*
+
 ## License
 
 This project is licensed under the MIT License with Attribution.
