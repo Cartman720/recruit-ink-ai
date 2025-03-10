@@ -136,7 +136,13 @@ poetry run pytest
 
 ## License
 
-[Add your license information here]
+This project is licensed under the MIT License with Attribution.
+
+Copyright (c) 2025 Aren Hovsepyan
+
+Permission is granted to use this software under the condition that proper attribution to Aren Hovsepyan is included in any derivative works or implementations.
+
+See the [LICENSE](LICENSE) file for full details.
 
 ## Contributors
 
